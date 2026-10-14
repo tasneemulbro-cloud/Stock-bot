@@ -6,14 +6,14 @@ from telegram import ReplyKeyboardMarkup, Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, ConversationHandler
 
 # --- Flask Server (বটকে জাগিয়ে রাখার জন্য) ---
-app = Flask('')
+server = Flask('')  # নাম পরিবর্তন করে server দিলাম
 
-@app.route('/')
+@server.route('/')
 def home():
     return "Bot is running!"
 
 def run():
-    app.run(host='0.0.0.0', port=8080)
+    server.run(host='0.0.0.0', port=8080)
 
 def keep_alive():
     t = Thread(target=run)
@@ -73,7 +73,7 @@ async def get_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
     valid_items = [l.strip() for l in lines if l.strip().endswith("53")]
     
     if not valid_items:
-        await update.message.reply_text("⚠️ No valid data found. Try again:")
+        await update.message.reply_text("⚠️ No valid data found (Must end with 53). Try again:")
         return GET_DATA
 
     name = context.user_data['p_name']
@@ -110,10 +110,16 @@ async def deliver_product(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return MENU
 
 def main():
+    if not TOKEN:
+        print("Error: BOT_TOKEN not found in environment variables!")
+        return
+
     # Keep alive সার্ভার চালু করা
     keep_alive()
     
-    app = Application.builder().token(TOKEN).build()
+    # বটের অ্যাপ্লিকেশন (ptb_app নাম দিলাম যাতে কনফ্লিক্ট না হয়)
+    ptb_app = Application.builder().token(TOKEN).build()
+    
     conv = ConversationHandler(
         entry_points=[CommandHandler("start", start)],
         states={
@@ -128,8 +134,10 @@ def main():
         },
         fallbacks=[CommandHandler("start", start)],
     )
-    app.add_handler(conv)
-    app.run_polling()
+    
+    ptb_app.add_handler(conv)
+    print("Bot is starting...")
+    ptb_app.run_polling()
 
 if __name__ == "__main__":
     main()
